@@ -65,6 +65,24 @@ const supabase = useSupabaseClient()
 const handleRegister = async () => {
   error.value = ''
   loading.value = true
+
+  const { data: exists } = await supabase.rpc('check_profile_exists', {
+    p_email: email.value,
+    p_username: username.value,
+  } as never)
+
+  if (exists === 'email') {
+    error.value = 'An account with this email already exists'
+    loading.value = false
+    return
+  }
+
+  if (exists === 'username') {
+    error.value = 'This username is already taken'
+    loading.value = false
+    return
+  }
+
   const { error: err } = await supabase.auth.signUp({
     email: email.value,
     password: password.value,
