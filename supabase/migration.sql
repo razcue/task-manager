@@ -3,6 +3,7 @@ DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 DROP FUNCTION IF EXISTS handle_new_user();
 
 -- Drop tables with CASCADE (handles policies automatically)
+DROP TABLE IF EXISTS tasks CASCADE;
 DROP TABLE IF EXISTS project_members CASCADE;
 DROP TABLE IF EXISTS projects CASCADE;
 DROP TABLE IF EXISTS profiles CASCADE;
@@ -10,9 +11,11 @@ DROP TABLE IF EXISTS profiles CASCADE;
 -- Drop functions
 DROP FUNCTION IF EXISTS is_project_owner(UUID);
 DROP FUNCTION IF EXISTS is_project_member(UUID);
+DROP FUNCTION IF EXISTS is_project_archived(UUID);
 DROP FUNCTION IF EXISTS remove_project_member(UUID, UUID);
 DROP FUNCTION IF EXISTS check_profile_exists(TEXT, TEXT);
 DROP FUNCTION IF EXISTS get_email_by_username(TEXT);
+DROP FUNCTION IF EXISTS is_email_confirmed(UUID);
 
 -- 1. Profiles table (syncs with auth.users)
 CREATE TABLE IF NOT EXISTS profiles (
@@ -66,6 +69,19 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 GRANT EXECUTE ON FUNCTION check_profile_exists TO anon;
 
+-- Check if a user's email is confirmed (for member verification)
+CREATE OR REPLACE FUNCTION is_email_confirmed(p_user_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM auth.users
+    WHERE id = p_user_id AND email_confirmed_at IS NOT NULL
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+GRANT EXECUTE ON FUNCTION is_email_confirmed TO authenticated;
+
 -- Grant base table access to roles (required for RLS policies to work)
 GRANT SELECT, UPDATE ON TABLE profiles TO authenticated;
 
@@ -107,29 +123,52 @@ RETURNS BOOLEAN AS $$
   );
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
 
--- 5. Function: remove member and reassign tasks to project owner
+-- 5. Helper function: check if project is archived (bypasses RLS)
+CREATE OR REPLACE FUNCTION is_project_archived(p_project_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT archived FROM public.projects WHERE id = p_project_id;
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- 6. Function: remove member and reassign tasks to project owner
 CREATE OR REPLACE FUNCTION remove_project_member(p_project_id UUID, p_user_id UUID)
 RETURNS void AS $$
 DECLARE
   v_owner_id UUID;
 BEGIN
   SELECT owner_id INTO v_owner_id FROM projects WHERE id = p_project_id;
+  UPDATE tasks SET assignee_id = v_owner_id
+  WHERE project_id = p_project_id AND assignee_id = p_user_id;
   DELETE FROM project_members
   WHERE project_id = p_project_id AND user_id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- 7. Tasks table
+CREATE TABLE IF NOT EXISTS tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 200),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'in_progress', 'completed')),
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high')),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  assignee_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Grant base table access
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE projects TO authenticated;
 GRANT SELECT, INSERT, DELETE ON TABLE project_members TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE tasks TO authenticated;
 GRANT EXECUTE ON FUNCTION is_project_owner TO authenticated;
 GRANT EXECUTE ON FUNCTION is_project_member TO authenticated;
+GRANT EXECUTE ON FUNCTION is_project_archived TO authenticated;
 GRANT EXECUTE ON FUNCTION remove_project_member TO authenticated;
 
--- 5. Row Level Security
+-- Row Level Security
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE tasks ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 CREATE POLICY "Profiles are viewable by authenticated users"
@@ -159,3 +198,45 @@ CREATE POLICY "Project owner can manage members"
 CREATE POLICY "Members can read project members"
   ON project_members FOR SELECT TO authenticated
   USING (is_project_member(project_id));
+
+-- Tasks: owner can read all
+CREATE POLICY "Owner can read tasks"
+  ON tasks FOR SELECT TO authenticated
+  USING (is_project_owner(project_id));
+
+-- Tasks: owner can create (except if archived)
+CREATE POLICY "Owner can create tasks"
+  ON tasks FOR INSERT TO authenticated
+  WITH CHECK (is_project_owner(project_id) AND NOT is_project_archived(project_id));
+
+-- Tasks: owner can update (except if archived)
+CREATE POLICY "Owner can update tasks"
+  ON tasks FOR UPDATE TO authenticated
+  USING (is_project_owner(project_id))
+  WITH CHECK (is_project_owner(project_id) AND NOT is_project_archived(project_id));
+
+-- Tasks: owner can delete (except if archived)
+CREATE POLICY "Owner can delete tasks"
+  ON tasks FOR DELETE TO authenticated
+  USING (is_project_owner(project_id) AND NOT is_project_archived(project_id));
+
+-- Tasks: members can read all
+CREATE POLICY "Members can read tasks"
+  ON tasks FOR SELECT TO authenticated
+  USING (is_project_member(project_id));
+
+-- Tasks: members can create tasks (for any project member, except if archived)
+CREATE POLICY "Members can create tasks"
+  ON tasks FOR INSERT TO authenticated
+  WITH CHECK (is_project_member(project_id) AND NOT is_project_archived(project_id));
+
+-- Tasks: users can update their own (except if archived)
+CREATE POLICY "Users can update own tasks"
+  ON tasks FOR UPDATE TO authenticated
+  USING (assignee_id = auth.uid() AND is_project_member(project_id))
+  WITH CHECK (assignee_id = auth.uid() AND is_project_member(project_id) AND NOT is_project_archived(project_id));
+
+-- Tasks: users can delete their own (except if archived)
+CREATE POLICY "Users can delete own tasks"
+  ON tasks FOR DELETE TO authenticated
+  USING (assignee_id = auth.uid() AND is_project_member(project_id) AND NOT is_project_archived(project_id));

@@ -21,3 +21,17 @@ export interface ProjectMember {
   created_at: string
   user?: Pick<UserProfile, 'id' | 'email' | 'username'>
 }
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed'
+export type TaskPriority = 'low' | 'medium' | 'high'
+
+export interface Task {
+  id: string
+  name: string
+  status: TaskStatus
+  priority: TaskPriority
+  project_id: string
+  assignee_id: string
+  created_at: string
+  updated_at: string
+}

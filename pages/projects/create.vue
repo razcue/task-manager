@@ -38,7 +38,6 @@
 
 <script setup lang="ts">
 const { createProject } = useSupabase()
-const router = useRouter()
 const loading = ref(false)
 const error = ref('')
 const form = ref({ name: '', description: '' })
@@ -49,7 +48,7 @@ const handleSubmit = async () => {
   const project = await createProject({ name: form.value.name, description: form.value.description })
   loading.value = false
   if (project) {
-    await router.push(`/projects/${project.id}`)
+    await navigateTo(`/projects/${project.id}`)
   } else {
     error.value = 'Failed to create project'
   }

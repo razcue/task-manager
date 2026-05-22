@@ -17,12 +17,14 @@
     "fix:all": "pnpm lint:fix && pnpm format:fix"
   },
   "dependencies": {
+    "@lucide/vue": "^1.16.0",
     "@nuxtjs/color-mode": "^3.5.2",
     "@nuxtjs/supabase": "^1.4.0",
     "@nuxtjs/tailwindcss": "^6.13.2",
     "nuxt": "^3.16.2",
     "vue": "^3.5.13",
-    "vue-router": "^4.5.1"
+    "vue-router": "^4.5.1",
+    "vuedraggable": "^4.1.0"
   },
   "devDependencies": {
     "@nuxt/eslint": "^1.15.2",

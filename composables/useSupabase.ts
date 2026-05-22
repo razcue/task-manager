@@ -1,4 +1,4 @@
-import type { UserProfile, Project, ProjectMember } from '~/types'
+import type { UserProfile, Project, ProjectMember, Task } from '~/types'
 
 export const useSupabase = () => {
   const client = useSupabaseClient()
@@ -16,6 +16,13 @@ export const useSupabase = () => {
       p_username: username,
     } as never)
     return data as string | null
+  }
+
+  const isEmailConfirmed = async (userId: string): Promise<boolean> => {
+    const { data } = await client.rpc('is_email_confirmed', {
+      p_user_id: userId,
+    } as never)
+    return !!data
   }
 
   const getProjects = async (): Promise<Project[]> => {
@@ -73,11 +80,55 @@ export const useSupabase = () => {
     } as never)
   }
 
+  const getTasks = async (projectId: string): Promise<Task[]> => {
+    const { data } = await client
+      .from('tasks')
+      .select('*')
+      .eq('project_id', projectId)
+      .order('created_at', { ascending: false })
+    return data || []
+  }
+
+  const createTask = async (
+    task: { name: string; priority: string; assignee_id: string },
+    projectId: string,
+  ): Promise<Task | null> => {
+    const { data } = await client
+      .from('tasks')
+      .insert({
+        name: task.name,
+        priority: task.priority,
+        assignee_id: task.assignee_id,
+        project_id: projectId,
+      } as never)
+      .select()
+      .single()
+    return data
+  }
+
+  const updateTask = async (
+    id: string,
+    updates: Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>>,
+  ): Promise<Task | null> => {
+    const { data } = await client
+      .from('tasks')
+      .update({ ...updates, updated_at: new Date().toISOString() } as never)
+      .eq('id', id)
+      .select()
+      .single()
+    return data
+  }
+
+  const deleteTask = async (id: string): Promise<void> => {
+    await client.from('tasks').delete().eq('id', id)
+  }
+
   return {
     client,
     user,
     getProfile,
     getEmailByUsername,
+    isEmailConfirmed,
     getProjects,
     getProject,
     createProject,
@@ -86,5 +137,9 @@ export const useSupabase = () => {
     getProjectMembers,
     addProjectMember,
     removeProjectMember,
+    getTasks,
+    createTask,
+    updateTask,
+    deleteTask,
   }
 }

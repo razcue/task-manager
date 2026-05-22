@@ -57,13 +57,15 @@
           <!-- View mode buttons -->
           <div v-if="isOwner && !editing && !confirmDelete" class="flex gap-2">
             <button
-              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
+              :disabled="actionInProgress"
+              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="startEditing"
             >
               Edit
             </button>
             <button
-              class="px-3 py-1.5 text-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950"
+              :disabled="actionInProgress"
+              class="px-3 py-1.5 text-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed"
               @click="confirmDelete = true"
             >
               Delete
@@ -108,7 +110,8 @@
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Members ({{ members.length }})</h2>
           <button
             v-if="isOwner && !managingMembers"
-            class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400"
+            :disabled="actionInProgress"
+            class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"
             @click="managingMembers = true"
           >
             Manage
@@ -116,7 +119,7 @@
           <button
             v-if="isOwner && managingMembers"
             class="text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400"
-            @click="managingMembers = false"
+            @click="closeManage"
           >
             Close
           </button>
@@ -133,13 +136,30 @@
               <span v-if="m.user_id === project.owner_id" class="text-xs text-gray-400">(owner)</span>
               <span v-else-if="m.user_id === user?.id" class="text-xs text-blue-500">(you)</span>
             </div>
-            <button
-              v-if="managingMembers && isOwner && m.user_id !== project.owner_id"
-              class="text-xs text-red-600 hover:text-red-700 dark:text-red-400"
-              @click="handleRemoveMember(m.user_id)"
-            >
-              Remove
-            </button>
+            <template v-if="managingMembers && isOwner && m.user_id !== project.owner_id">
+              <template v-if="confirmingRemove === m.user_id">
+                <button
+                  class="px-2 py-0.5 text-xs rounded bg-red-600 hover:bg-red-700 text-white font-medium"
+                  @click="handleRemoveMember(m.user_id)"
+                >
+                  Remove
+                </button>
+                <button
+                  class="px-2 py-0.5 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium"
+                  @click="confirmingRemove = null"
+                >
+                  Cancel
+                </button>
+              </template>
+              <button
+                v-else
+                class="text-xs text-red-600 hover:text-red-700 dark:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                :disabled="actionInProgress"
+                @click="confirmingRemove = m.user_id"
+              >
+                Remove
+              </button>
+            </template>
           </li>
         </ul>
 
@@ -149,11 +169,12 @@
             type="text"
             required
             placeholder="Enter username or email"
-            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm"
+            :disabled="actionInProgress"
+            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           />
           <button
             type="submit"
-            :disabled="addLoading"
+            :disabled="actionInProgress || addLoading"
             class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50"
           >
             {{ addLoading ? 'Adding...' : 'Add' }}
@@ -162,26 +183,44 @@
         <p v-if="addError" class="text-sm text-red-600 dark:text-red-400 mt-2">{{ addError }}</p>
       </div>
 
-      <!-- Tasks placeholder -->
+      <!-- Tasks section -->
       <div class="border-t border-gray-200 dark:border-gray-800 pt-6 mt-6">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Tasks</h2>
-        <p class="mt-2 text-sm text-gray-400 dark:text-gray-500">Tasks will be implemented next.</p>
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Tasks ({{ taskCount }})</h2>
+          <NuxtLink
+            :to="`/projects/${project.id}/tasks?view=board`"
+            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          >
+            <ExternalLinkIcon :size="18" />
+          </NuxtLink>
+        </div>
+        <TaskList
+          ref="taskListRef"
+          :project-id="project.id"
+          :members="members"
+          :current-user-id="user?.id"
+          :is-owner="isOwner"
+          :project-archived="project.archived"
+          :owner-id="project.owner_id"
+          :owner-name="ownerName"
+          @task-count="taskCount = $event"
+          @editing-change="taskEditing = $event"
+        />
       </div>
-
-      <NuxtLink to="/dashboard" class="inline-block mt-6 text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400">
-        ← Back to projects
-      </NuxtLink>
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
 import type { Project, ProjectMember } from '~/types'
+import { ExternalLink as ExternalLinkIcon } from '@lucide/vue'
 
 const route = useRoute()
 const router = useRouter()
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
+
+const { actionInProgress, setActionInProgress } = useActionState()
 
 const {
   getProject,
@@ -191,12 +230,15 @@ const {
   getProfile,
   addProjectMember,
   removeProjectMember,
+  isEmailConfirmed,
 } = useSupabase()
 
 const project = ref<Project | null>(null)
 const members = ref<ProjectMember[]>([])
 const ownerName = ref('')
 const loading = ref(true)
+const taskCount = ref(0)
+const taskEditing = ref(false)
 
 const isOwner = computed(() => project.value?.owner_id === user.value?.id)
 
@@ -217,11 +259,13 @@ const startEditing = () => {
   editError.value = ''
   editSuccess.value = false
   editing.value = true
+  setActionInProgress(true)
 }
 
 const cancelEditing = () => {
   editing.value = false
   editError.value = ''
+  setActionInProgress(false)
 }
 
 const handleEditSubmit = async () => {
@@ -238,17 +282,23 @@ const handleEditSubmit = async () => {
   if (updated) {
     project.value = updated
     editing.value = false
+    setActionInProgress(false)
     editSuccess.value = true
     setTimeout(() => {
       editSuccess.value = false
     }, 2000)
   } else {
+    setActionInProgress(false)
     editError.value = 'Failed to update project'
   }
 }
 
 // Delete state
 const confirmDelete = ref(false)
+
+watch(confirmDelete, (val) => {
+  setActionInProgress(val)
+})
 
 const handleDelete = async () => {
   if (!project.value) return
@@ -261,6 +311,15 @@ const managingMembers = ref(false)
 const newMemberIdentifier = ref('')
 const addLoading = ref(false)
 const addError = ref('')
+const confirmingRemove = ref<string | null>(null)
+
+watch(confirmingRemove, (val) => {
+  setActionInProgress(val !== null)
+})
+
+watch(addLoading, (val) => {
+  setActionInProgress(val)
+})
 
 onMounted(async () => {
   const id = route.params.id as string
@@ -314,14 +373,30 @@ const handleAddMember = async () => {
     return
   }
 
+  if (!(await isEmailConfirmed(profile.id))) {
+    addError.value = 'User has not verified their email'
+    addLoading.value = false
+    return
+  }
+
   await addProjectMember(p.id, profile.id)
   members.value = await getProjectMembers(route.params.id as string)
   newMemberIdentifier.value = ''
   addLoading.value = false
 }
 
+const taskListRef = ref<{ loadTasks: () => Promise<void> } | null>(null)
+
 const handleRemoveMember = async (userId: string) => {
   await removeProjectMember(route.params.id as string, userId)
   members.value = await getProjectMembers(route.params.id as string)
+  confirmingRemove.value = null
+  await taskListRef.value?.loadTasks()
+}
+
+function closeManage() {
+  managingMembers.value = false
+  confirmingRemove.value = null
+  addError.value = ''
 }
 </script>
