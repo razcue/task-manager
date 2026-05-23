@@ -2,7 +2,7 @@
   <div class="grid grid-cols-3 gap-4">
     <div v-for="col in columns" :key="col.value" class="space-y-3">
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-semibold text-gray-900 dark:text-white">{{ col.label }}</h3>
+        <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ col.label }}</h2>
         <span class="text-xs text-gray-400">{{ col.tasks.length }}</span>
       </div>
       <div
@@ -12,12 +12,12 @@
           :list="col.tasks"
           :group="{
             name: 'tasks',
-            pull: canEdit && !boardEditing && !actionInProgress,
-            put: canEdit && !boardEditing && !actionInProgress,
+            pull: canEdit && !anyLock,
+            put: canEdit && !anyLock,
           }"
           :item-key="itemKey"
-          :disabled="boardEditing || actionInProgress"
-          :class="{ 'cursor-default': boardEditing || actionInProgress }"
+          :disabled="anyLock"
+          :class="{ 'cursor-default': anyLock }"
           class="space-y-2 min-h-[40px]"
           ghost-class="opacity-50"
           @change="onChange(col.value, $event)"
@@ -33,8 +33,9 @@
               :auto-edit-task-id="autoEditTaskId"
               @update="handleItemUpdate"
               @delete="(id) => $emit('delete', id)"
+              @create="(data) => $emit('create', data)"
               @editing-change="handleEditingChange"
-              @saved-new="(id) => $emit('saved-new', id)"
+              @saved-new="(id) => $emit('savedNew', id)"
             />
           </template>
         </draggable>
@@ -44,10 +45,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Task } from '~/types'
 import draggable from 'vuedraggable'
-import BoardTaskCard from './BoardTaskCard.vue'
-import { useActionState } from '~/composables/useActionState'
 
 const props = defineProps<{
   tasks: Task[]
@@ -63,18 +61,18 @@ const props = defineProps<{
 const emit = defineEmits<{
   update: [id: string, updates: Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>>]
   delete: [id: string]
-  'saved-new': [id: string]
-  'editing-change': [editing: boolean]
+  create: [{ id: string; name: string; status: TaskStatus; priority: TaskPriority; assignee_id: string }]
+  savedNew: [id: string]
+  editingChange: [editing: boolean]
 }>()
-
-const { updateTask } = useSupabase()
 
 const boardEditing = ref(false)
 const { actionInProgress } = useActionState()
+const anyLock = computed(() => boardEditing.value || actionInProgress.value)
 
 const handleEditingChange = (editing: boolean) => {
   boardEditing.value = editing
-  emit('editing-change', editing)
+  emit('editingChange', editing)
 }
 
 const columns = computed(() => [
@@ -97,20 +95,16 @@ const columns = computed(() => [
 
 const itemKey = (t: Task) => t.id
 
-const onChange = (newStatus: string, event: { added?: { element: Task } }) => {
+const onChange = (newStatus: TaskStatus, event: { added?: { element: Task } }) => {
   if (event.added) {
     const task = event.added.element
     if (task.status !== newStatus) {
-      updateTask(task.id, { status: newStatus as Task['status'] })
-      emit('update', task.id, { status: newStatus as Task['status'] })
+      emit('update', task.id, { status: newStatus })
     }
   }
 }
 
-const handleItemUpdate = async (
-  id: string,
-  updates: Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>>,
-) => {
+const handleItemUpdate = (id: string, updates: Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>>) => {
   emit('update', id, updates)
 }
 </script>

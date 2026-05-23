@@ -10,9 +10,11 @@
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
           ]"
+          :aria-pressed="viewMode === 'list'"
+          aria-label="List view"
           @click="viewMode = 'list'"
         >
-          <ListIcon :size="16" />
+          <ListIcon :size="16" aria-hidden="true" />
           List
         </button>
         <button
@@ -22,9 +24,11 @@
               ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300',
           ]"
+          :aria-pressed="viewMode === 'board'"
+          aria-label="Board view"
           @click="viewMode = 'board'"
         >
-          <Columns3Icon :size="16" />
+          <Columns3Icon :size="16" aria-hidden="true" />
           Board
         </button>
       </div>
@@ -33,6 +37,7 @@
           v-if="viewMode === 'list'"
           v-model="sortBy"
           :disabled="anyActionInProgress"
+          aria-label="Sort tasks"
           class="text-sm bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           <option value="created_at">Created</option>
@@ -43,9 +48,10 @@
           v-if="canCreate"
           :disabled="anyActionInProgress"
           class="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+          aria-label="Add task"
           @click="handleAddTask"
         >
-          <PlusIcon :size="16" />
+          <PlusIcon :size="16" aria-hidden="true" />
           Add
         </button>
       </div>
@@ -66,6 +72,7 @@
         :auto-edit-task-id="autoEditTaskId"
         @update="handleUpdate"
         @delete="handleDelete"
+        @create="handleCreate"
         @saved-new="handleSavedNew"
         @editing-change="handleEditingChange"
       />
@@ -86,6 +93,7 @@
           :auto-edit-task-id="autoEditTaskId"
           @update="handleUpdate"
           @delete="handleDelete"
+          @create="handleCreate"
           @saved-new="handleSavedNew"
           @editing-change="handleEditingChange"
         />
@@ -101,10 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Task, TaskPriority, ProjectMember } from '~/types'
 import { List as ListIcon, Columns3 as Columns3Icon, Plus as PlusIcon } from '@lucide/vue'
-import TaskItem from './ListTaskItem.vue'
-import TaskBoard from './TaskBoard.vue'
 
 const props = defineProps<{
   projectId: string
@@ -117,13 +122,13 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  'task-count': [count: number]
-  'editing-change': [editing: boolean]
+  taskCount: [count: number]
+  editingChange: [editing: boolean]
 }>()
 
 const { getTasks, createTask, updateTask, deleteTask } = useSupabase()
+const { notify } = useNotification()
 const route = useRoute()
-const router = useRouter()
 
 const tasks = ref<Task[]>([])
 const loading = ref(true)
@@ -143,7 +148,7 @@ watch(
 
 watch(viewMode, (mode) => {
   if (route.query.view !== mode) {
-    router.replace({ query: { ...route.query, view: mode } })
+    navigateTo({ query: { ...route.query, view: mode }, replace: true })
   }
 })
 
@@ -199,10 +204,10 @@ const loadTasks = async () => {
   loading.value = true
   tasks.value = await getTasks(props.projectId)
   loading.value = false
-  emit('task-count', tasks.value.length)
+  emit('taskCount', tasks.value.length)
 }
 
-const { actionInProgress, setActionInProgress } = useActionState()
+const { actionInProgress } = useActionState()
 
 const anyActionInProgress = computed(() => taskEditing.value || actionInProgress.value)
 
@@ -210,23 +215,49 @@ const taskEditing = ref(false)
 
 function handleEditingChange(editing: boolean) {
   taskEditing.value = editing
-  emit('editing-change', editing)
+  emit('editingChange', editing)
 }
 
 onMounted(loadTasks)
 
-async function handleAddTask() {
+function handleAddTask() {
   if (!props.currentUserId) return
-  setActionInProgress(true)
+  const tempTask: Task = {
+    id: 'new-' + Date.now(),
+    name: 'New task',
+    status: 'pending',
+    priority: 'medium',
+    project_id: props.projectId,
+    assignee_id: props.currentUserId,
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }
+  tasks.value.unshift(tempTask)
+  autoEditTaskId.value = tempTask.id
+}
+
+const handleCreate = async (data: {
+  id: string
+  name: string
+  status: TaskStatus
+  priority: TaskPriority
+  assignee_id: string
+}) => {
   const created = await createTask(
-    { name: 'New task', priority: 'medium' as TaskPriority, assignee_id: props.currentUserId },
+    { name: data.name, status: data.status, priority: data.priority, assignee_id: data.assignee_id },
     props.projectId,
   )
   if (created) {
-    tasks.value.unshift(created)
-    autoEditTaskId.value = created.id
+    const idx = tasks.value.findIndex((t) => t.id === data.id)
+    if (idx !== -1) {
+      tasks.value[idx] = created
+    }
+    autoEditTaskId.value = null
+    emit('taskCount', tasks.value.length)
+    notify('Task created successfully')
   } else {
-    setActionInProgress(false)
+    tasks.value = tasks.value.filter((t) => t.id !== data.id)
+    notify('Failed to create task', 'error')
   }
 }
 
@@ -234,6 +265,7 @@ const handleUpdate = async (
   id: string,
   updates: Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>>,
 ) => {
+  if (id.startsWith('new-')) return
   const updated = await updateTask(id, updates)
   if (updated) {
     if (autoEditTaskId.value === id) {
@@ -241,6 +273,9 @@ const handleUpdate = async (
     }
     const idx = tasks.value.findIndex((t) => t.id === id)
     if (idx !== -1) tasks.value[idx] = updated
+    notify('Task updated successfully')
+  } else {
+    notify('Failed to update task', 'error')
   }
 }
 
@@ -251,9 +286,17 @@ function handleSavedNew(id: string) {
 }
 
 const handleDelete = async (id: string) => {
+  if (id.startsWith('new-')) {
+    tasks.value = tasks.value.filter((t) => t.id !== id)
+    if (autoEditTaskId.value === id) {
+      autoEditTaskId.value = null
+    }
+    return
+  }
   await deleteTask(id)
   tasks.value = tasks.value.filter((t) => t.id !== id)
-  emit('task-count', tasks.value.length)
+  emit('taskCount', tasks.value.length)
+  notify('Task deleted successfully')
 }
 
 defineExpose({ loadTasks })

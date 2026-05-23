@@ -30,12 +30,12 @@ CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
   INSERT INTO public.profiles (id, email, username)
-  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'username');
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'username')
+  ON CONFLICT (id) DO NOTHING;
 RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
@@ -46,10 +46,10 @@ RETURNS TEXT AS $$
 DECLARE
   v_email TEXT;
 BEGIN
-  SELECT email INTO v_email FROM profiles WHERE username = p_username;
+  SELECT email INTO v_email FROM public.profiles WHERE username = p_username;
   RETURN v_email;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 GRANT EXECUTE ON FUNCTION get_email_by_username TO anon, authenticated;
 
@@ -59,13 +59,13 @@ RETURNS TEXT AS $$
 DECLARE
   v_result TEXT;
 BEGIN
-  SELECT 'email' INTO v_result FROM profiles WHERE email = p_email LIMIT 1;
+  SELECT 'email' INTO v_result FROM public.profiles WHERE email = p_email LIMIT 1;
   IF FOUND THEN RETURN v_result; END IF;
-  SELECT 'username' INTO v_result FROM profiles WHERE username = p_username LIMIT 1;
+  SELECT 'username' INTO v_result FROM public.profiles WHERE username = p_username LIMIT 1;
   IF FOUND THEN RETURN v_result; END IF;
   RETURN NULL;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 GRANT EXECUTE ON FUNCTION check_profile_exists TO anon;
 
@@ -78,7 +78,7 @@ BEGIN
     WHERE id = p_user_id AND email_confirmed_at IS NOT NULL
   );
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 GRANT EXECUTE ON FUNCTION is_email_confirmed TO authenticated;
 
@@ -90,7 +90,7 @@ CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL CHECK (char_length(name) > 0 AND char_length(name) <= 100),
   description TEXT DEFAULT '' CHECK (char_length(description) <= 500),
-  archived BOOLEAN DEFAULT false,
+  archived BOOLEAN NOT NULL DEFAULT false,
   owner_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
@@ -112,7 +112,7 @@ RETURNS BOOLEAN AS $$
     SELECT 1 FROM public.project_members
     WHERE project_id = p_project_id AND user_id = auth.uid()
   );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = '';
 
 -- Helper function: check if user is the project owner (bypasses RLS to avoid recursion)
 CREATE OR REPLACE FUNCTION is_project_owner(p_project_id UUID)
@@ -121,13 +121,13 @@ RETURNS BOOLEAN AS $$
     SELECT 1 FROM public.projects
     WHERE id = p_project_id AND owner_id = auth.uid()
   );
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = '';
 
 -- 5. Helper function: check if project is archived (bypasses RLS)
 CREATE OR REPLACE FUNCTION is_project_archived(p_project_id UUID)
 RETURNS BOOLEAN AS $$
   SELECT archived FROM public.projects WHERE id = p_project_id;
-$$ LANGUAGE sql SECURITY DEFINER STABLE;
+$$ LANGUAGE sql SECURITY DEFINER STABLE SET search_path = '';
 
 -- 6. Function: remove member and reassign tasks to project owner
 CREATE OR REPLACE FUNCTION remove_project_member(p_project_id UUID, p_user_id UUID)
@@ -135,13 +135,16 @@ RETURNS void AS $$
 DECLARE
   v_owner_id UUID;
 BEGIN
-  SELECT owner_id INTO v_owner_id FROM projects WHERE id = p_project_id;
-  UPDATE tasks SET assignee_id = v_owner_id
+  IF NOT EXISTS (SELECT 1 FROM public.projects WHERE id = p_project_id AND owner_id = auth.uid()) THEN
+    RAISE EXCEPTION 'Not authorized';
+  END IF;
+  SELECT owner_id INTO STRICT v_owner_id FROM public.projects WHERE id = p_project_id;
+  UPDATE public.tasks SET assignee_id = v_owner_id
   WHERE project_id = p_project_id AND assignee_id = p_user_id;
-  DELETE FROM project_members
+  DELETE FROM public.project_members
   WHERE project_id = p_project_id AND user_id = p_user_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
 
 -- 7. Tasks table
 CREATE TABLE IF NOT EXISTS tasks (
@@ -175,7 +178,7 @@ CREATE POLICY "Profiles are viewable by authenticated users"
   ON profiles FOR SELECT TO authenticated USING (true);
 
 CREATE POLICY "Users can update their own profile"
-  ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id);
+  ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 
 -- Projects: owner can do everything
 CREATE POLICY "Project owner can do everything"
@@ -240,3 +243,10 @@ CREATE POLICY "Users can update own tasks"
 CREATE POLICY "Users can delete own tasks"
   ON tasks FOR DELETE TO authenticated
   USING (assignee_id = auth.uid() AND is_project_member(project_id) AND NOT is_project_archived(project_id));
+
+-- Foreign key indexes
+CREATE INDEX IF NOT EXISTS idx_projects_owner_id ON projects(owner_id);
+CREATE INDEX IF NOT EXISTS idx_project_members_project_id ON project_members(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_members_user_id ON project_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_project_id ON tasks(project_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_assignee_id ON tasks(assignee_id);

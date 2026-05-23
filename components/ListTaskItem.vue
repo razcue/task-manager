@@ -54,17 +54,19 @@
               v-if="canEdit"
               :disabled="actionInProgress"
               class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400 dark:disabled:hover:text-gray-400"
+              aria-label="Edit task"
               @click="startEditing(task)"
             >
-              <PencilIcon :size="14" />
+              <PencilIcon :size="14" aria-hidden="true" />
             </button>
             <button
               v-if="canEdit"
               :disabled="actionInProgress"
               class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-400 dark:disabled:hover:text-gray-400"
+              aria-label="Delete task"
               @click="confirmDelete"
             >
-              <Trash2Icon :size="14" />
+              <Trash2Icon :size="14" aria-hidden="true" />
             </button>
           </div>
         </template>
@@ -74,16 +76,22 @@
     <!-- Edit mode -->
     <template v-else>
       <div class="flex-1 flex items-center gap-1 min-w-0">
-        <input
-          v-if="isNewTask"
-          ref="editNameInput"
-          v-model="editForm.name"
-          type="text"
-          maxlength="200"
-          class="px-2 py-1 text-sm border border-gray-300 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white flex-1 min-w-0"
-          @keyup.enter="handleSaveEdit"
-          @keyup.escape="handleCancelEdit"
-        />
+        <div v-if="isNewTask" class="flex-1 min-w-0">
+          <input
+            ref="editNameInput"
+            v-model="editForm.name"
+            type="text"
+            maxlength="200"
+            aria-label="Task name"
+            :class="[
+              'w-full px-2 py-1 text-sm border rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white',
+              taskErrors.name ? 'border-red-500' : 'border-gray-300 dark:border-gray-700',
+            ]"
+            @keyup.enter="handleSaveEdit"
+            @keyup.escape="handleCancelEdit"
+          />
+          <p v-if="taskErrors.name" class="mt-1 text-xs text-red-600">{{ taskErrors.name }}</p>
+        </div>
         <span v-else class="px-2 py-1 text-sm font-medium text-gray-900 dark:text-white truncate flex-1 min-w-0">
           {{ task.name }}
         </span>
@@ -91,7 +99,7 @@
           <select
             v-model="editForm.priority"
             class="w-full text-xs bg-transparent border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-center text-gray-700 dark:text-gray-300"
-            @change="handleEmitUpdate"
+            aria-label="Task priority"
           >
             <option value="low">Low</option>
             <option value="medium">Medium</option>
@@ -102,7 +110,7 @@
           <select
             v-model="editForm.status"
             class="w-full text-xs bg-transparent border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-center text-gray-700 dark:text-gray-300"
-            @change="handleEmitUpdate"
+            aria-label="Task status"
           >
             <option value="pending">Pending</option>
             <option value="in_progress">In Progress</option>
@@ -113,7 +121,7 @@
           <select
             v-model="editForm.assignee_id"
             class="w-full text-xs bg-transparent border border-gray-300 dark:border-gray-700 rounded px-1 py-0.5 text-center text-gray-700 dark:text-gray-300"
-            @change="handleEmitUpdate"
+            aria-label="Task assignee"
           >
             <option v-for="a in allAssignees" :key="a.id" :value="a.id">
               {{ a.name }}{{ a.id === currentUserId ? ' (you)' : '' }}
@@ -124,15 +132,17 @@
       <div class="shrink-0 w-[36px] flex items-center justify-between">
         <button
           class="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+          aria-label="Save task"
           @click="handleSaveEdit"
         >
-          <CheckIcon :size="14" />
+          <CheckIcon :size="14" aria-hidden="true" />
         </button>
         <button
           class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+          aria-label="Cancel"
           @click="handleCancelEdit"
         >
-          <XIcon :size="14" />
+          <XIcon :size="14" aria-hidden="true" />
         </button>
       </div>
     </template>
@@ -140,9 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Task } from '~/types'
 import { Pencil as PencilIcon, Trash2 as Trash2Icon, Check as CheckIcon, X as XIcon } from '@lucide/vue'
-import { useTaskItem } from '~/composables/useTaskItem'
 
 const props = defineProps<{
   task: Task
@@ -157,17 +165,21 @@ const props = defineProps<{
 const emit = defineEmits<{
   update: [id: string, updates: Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>>]
   delete: [id: string]
-  'saved-new': [id: string]
-  'editing-change': [editing: boolean]
+  create: [{ id: string; name: string; status: TaskStatus; priority: TaskPriority; assignee_id: string }]
+  savedNew: [id: string]
+  editingChange: [editing: boolean]
 }>()
 
 const {
   editing,
   confirmingDelete,
+  editNameInput,
   editForm,
+  taskErrors,
   startEditing,
   cancelEdit,
   buildUpdates,
+  validateTask,
   confirmDelete,
   cancelDelete,
   statusLabel,
@@ -176,12 +188,13 @@ const {
 } = useTaskItem()
 
 const { actionInProgress, setActionInProgress } = useActionState()
+const { notify } = useNotification()
 
 const isNewTask = computed(() => props.autoEditTaskId === props.task.id)
 
 watch(editing, (val) => {
   setActionInProgress(val)
-  emit('editing-change', val)
+  emit('editingChange', val)
 })
 
 watch(confirmingDelete, (val) => {
@@ -191,7 +204,7 @@ watch(confirmingDelete, (val) => {
 onUnmounted(() => {
   if (editing.value) {
     setActionInProgress(false)
-    emit('editing-change', false)
+    emit('editingChange', false)
   }
   if (confirmingDelete.value) {
     setActionInProgress(false)
@@ -212,12 +225,24 @@ function handleDeleteConfirm() {
 }
 
 function handleSaveEdit() {
-  const updates = buildUpdates(props.task)
-  if (Object.keys(updates).length > 0) {
-    emit('update', props.task.id, updates)
-  }
   if (isNewTask.value) {
-    emit('saved-new', props.task.id)
+    if (!validateTask(true)) {
+      notify('Please fix the form errors', 'error')
+      return
+    }
+    emit('create', {
+      id: props.task.id,
+      name: editForm.value.name.trim(),
+      status: editForm.value.status,
+      priority: editForm.value.priority,
+      assignee_id: editForm.value.assignee_id,
+    })
+    emit('savedNew', props.task.id)
+  } else {
+    const updates = buildUpdates(props.task)
+    if (Object.keys(updates).length > 0) {
+      emit('update', props.task.id, updates)
+    }
   }
   cancelEdit()
 }
@@ -226,14 +251,6 @@ function handleCancelEdit() {
   cancelEdit()
   if (isNewTask.value) {
     emit('delete', props.task.id)
-  }
-}
-
-function handleEmitUpdate() {
-  if (isNewTask.value) return
-  const updates = buildUpdates(props.task)
-  if (Object.keys(updates).length > 0) {
-    emit('update', props.task.id, updates)
   }
 }
 </script>

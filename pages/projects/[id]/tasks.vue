@@ -3,12 +3,13 @@
     <div v-if="loading" class="text-gray-500 dark:text-gray-400">Loading...</div>
 
     <template v-else-if="project">
+      <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">{{ project.name }} — Tasks</h1>
       <div class="mb-6">
         <NuxtLink
           :to="`/projects/${project.id}?view=${route.query.view || 'board'}`"
           class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors"
         >
-          <ArrowLeftIcon :size="16" />
+          <ArrowLeftIcon :size="16" aria-hidden="true" />
           <span>Back</span>
         </NuxtLink>
       </div>
@@ -27,10 +28,9 @@
 </template>
 
 <script setup lang="ts">
-import type { Project, ProjectMember } from '~/types'
 import { ArrowLeft as ArrowLeftIcon } from '@lucide/vue'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({ title: 'Tasks' })
 
 const route = useRoute()
 const user = useSupabaseUser()

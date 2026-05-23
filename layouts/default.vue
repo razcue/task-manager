@@ -9,7 +9,7 @@
             <div v-if="projects.length === 0" class="flex items-center gap-2">
               <button
                 class="text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 font-medium"
-                @click="router.push('/projects/create')"
+                @click="goToCreateProject"
               >
                 + Create Project
               </button>
@@ -17,13 +17,16 @@
             <div v-else-if="onProjectPage" ref="projectDropdownRef" class="relative">
               <button
                 class="flex items-center gap-1 text-sm bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                :aria-expanded="showProjectDropdown"
+                aria-haspopup="listbox"
                 @click="showProjectDropdown = !showProjectDropdown"
               >
                 <span class="max-w-36 truncate">{{ currentProject?.name || 'Project' }}</span>
-                <ChevronDownIcon :size="14" class="shrink-0" />
+                <ChevronDownIcon :size="14" class="shrink-0" aria-hidden="true" />
               </button>
               <div
                 v-if="showProjectDropdown"
+                role="listbox"
                 class="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 py-1"
               >
                 <div
@@ -39,9 +42,10 @@
                   </button>
                   <button
                     class="px-2 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    :aria-label="'Settings for ' + p.name"
                     @click="goToProjectSettings(p.id)"
                   >
-                    <SettingsIcon :size="14" />
+                    <SettingsIcon :size="14" aria-hidden="true" />
                   </button>
                 </div>
                 <div class="border-t border-gray-200 dark:border-gray-800">
@@ -70,14 +74,13 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <slot />
     </main>
+    <NotificationToast />
   </div>
 </template>
 
 <script setup lang="ts">
-import type { Project } from '~/types'
 import { ChevronDown as ChevronDownIcon, Settings as SettingsIcon } from '@lucide/vue'
 
-const router = useRouter()
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()
 const { getProfile, getProjects } = useSupabase()
@@ -122,17 +125,17 @@ onUnmounted(() => document.removeEventListener('click', handleClickOutside))
 
 function goToProjectTasks(id: string) {
   showProjectDropdown.value = false
-  router.push(`/projects/${id}/tasks?view=board`)
+  navigateTo(`/projects/${id}/tasks?view=board`)
 }
 
 function goToProjectSettings(id: string) {
   showProjectDropdown.value = false
-  router.push(`/projects/${id}?view=board`)
+  navigateTo(`/projects/${id}?view=board`)
 }
 
 function goToCreateProject() {
   showProjectDropdown.value = false
-  router.push('/projects/create')
+  navigateTo('/projects/create')
 }
 
 const displayName = computed(() => profile.value?.username || profile.value?.email || '')

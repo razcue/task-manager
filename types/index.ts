@@ -35,3 +35,19 @@ export interface Task {
   created_at: string
   updated_at: string
 }
+
+export interface ToastNotification {
+  id: string
+  message: string
+  type: 'success' | 'error'
+}
+
+export type RuleType = 'required' | 'minLength' | 'maxLength' | 'pattern' | 'email'
+
+export interface ValidationRule {
+  rule: RuleType
+  value?: number | string
+  message: string
+}
+
+export type ValidationRules<T> = Partial<Record<keyof T, ValidationRule[]>>

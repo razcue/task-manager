@@ -9,5 +9,20 @@ export default defineNuxtConfig({
   colorMode: {
     classSuffix: '',
   },
-  tailwindcss: {},
+  imports: {
+    presets: [
+      {
+        from: '~/types',
+        imports: [
+          { name: 'UserProfile', type: true },
+          { name: 'Project', type: true },
+          { name: 'ProjectMember', type: true },
+          { name: 'TaskStatus', type: true },
+          { name: 'TaskPriority', type: true },
+          { name: 'Task', type: true },
+          { name: 'ToastNotification', type: true },
+        ],
+      },
+    ],
+  },
 })

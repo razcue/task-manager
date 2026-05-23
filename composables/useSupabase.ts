@@ -1,4 +1,4 @@
-import type { UserProfile, Project, ProjectMember, Task } from '~/types'
+import type { UserProfile, Project, ProjectMember, TaskPriority, TaskStatus, Task } from '~/types'
 
 export const useSupabase = () => {
   const client = useSupabaseClient()
@@ -26,12 +26,19 @@ export const useSupabase = () => {
   }
 
   const getProjects = async (): Promise<Project[]> => {
-    const { data } = await client.from('projects').select('*').order('created_at', { ascending: false })
+    const { data } = await client
+      .from('projects')
+      .select('id, name, description, archived, owner_id, created_at, updated_at')
+      .order('created_at', { ascending: false })
     return data || []
   }
 
   const getProject = async (id: string): Promise<Project | null> => {
-    const { data } = await client.from('projects').select('*').eq('id', id).single()
+    const { data } = await client
+      .from('projects')
+      .select('id, name, description, archived, owner_id, created_at, updated_at')
+      .eq('id', id)
+      .single()
     return data
   }
 
@@ -83,20 +90,21 @@ export const useSupabase = () => {
   const getTasks = async (projectId: string): Promise<Task[]> => {
     const { data } = await client
       .from('tasks')
-      .select('*')
+      .select('id, name, status, priority, project_id, assignee_id, created_at, updated_at')
       .eq('project_id', projectId)
       .order('created_at', { ascending: false })
     return data || []
   }
 
   const createTask = async (
-    task: { name: string; priority: string; assignee_id: string },
+    task: { name: string; status?: TaskStatus; priority: TaskPriority; assignee_id: string },
     projectId: string,
   ): Promise<Task | null> => {
     const { data } = await client
       .from('tasks')
       .insert({
         name: task.name,
+        status: task.status || 'pending',
         priority: task.priority,
         assignee_id: task.assignee_id,
         project_id: projectId,
@@ -123,6 +131,23 @@ export const useSupabase = () => {
     await client.from('tasks').delete().eq('id', id)
   }
 
+  const findProfileByIdentifier = async (
+    identifier: string,
+  ): Promise<{ id: string; email: string; username: string } | null> => {
+    const { data: byEmail } = await client
+      .from('profiles')
+      .select('id, email, username')
+      .eq('email', identifier)
+      .maybeSingle()
+    if (byEmail) return byEmail
+    const { data: byUsername } = await client
+      .from('profiles')
+      .select('id, email, username')
+      .eq('username', identifier)
+      .maybeSingle()
+    return byUsername
+  }
+
   return {
     client,
     user,
@@ -141,5 +166,6 @@ export const useSupabase = () => {
     createTask,
     updateTask,
     deleteTask,
+    findProfileByIdentifier,
   }
 }

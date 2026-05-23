@@ -21,26 +21,48 @@
           <template v-else>
             <div class="space-y-3 max-w-lg">
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Name</label>
+                <label for="editName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Name <span class="text-red-500">*</span></label
+                >
                 <input
+                  id="editName"
                   v-model="editForm.name"
                   type="text"
-                  required
                   maxlength="100"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  :class="[
+                    'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
+                    editErrorField('name')
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
+                  ]"
                 />
+                <p v-if="editErrorField('name')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {{ editErrorField('name') }}
+                </p>
               </div>
               <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+                <label for="editDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+                  >Description</label
+                >
                 <textarea
+                  id="editDescription"
                   v-model="editForm.description"
                   rows="3"
                   maxlength="500"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  :class="[
+                    'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
+                    editErrorField('description')
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
+                  ]"
                 />
+                <p v-if="editErrorField('description')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {{ editErrorField('description') }}
+                </p>
               </div>
               <label class="flex items-center gap-2 cursor-pointer">
                 <input
+                  id="editArchived"
                   v-model="editForm.archived"
                   type="checkbox"
                   class="rounded border-gray-300 dark:border-gray-700"
@@ -74,7 +96,7 @@
           <!-- Edit mode buttons -->
           <div v-if="isOwner && editing" class="flex gap-2">
             <button
-              :disabled="saving || !editForm.name.trim()"
+              :disabled="saving"
               class="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
               @click="handleEditSubmit"
             >
@@ -125,7 +147,7 @@
           </button>
         </div>
 
-        <ul class="space-y-2">
+        <ul v-if="members.length > 0" class="space-y-2">
           <li
             v-for="m in members"
             :key="m.id"
@@ -162,16 +184,25 @@
             </template>
           </li>
         </ul>
+        <p v-else class="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No members yet</p>
 
-        <form v-if="managingMembers && isOwner" class="flex gap-2 mt-4" @submit.prevent="handleAddMember">
-          <input
-            v-model="newMemberIdentifier"
-            type="text"
-            required
-            placeholder="Enter username or email"
-            :disabled="actionInProgress"
-            class="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed"
-          />
+        <form v-if="managingMembers && isOwner" novalidate class="flex gap-2 mt-4" @submit.prevent="handleAddMember">
+          <div class="flex-1">
+            <input
+              v-model="newMemberIdentifier"
+              type="text"
+              placeholder="Enter username or email"
+              aria-label="Add member by username or email"
+              :disabled="actionInProgress"
+              :class="[
+                'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed focus:ring-2',
+                memberError
+                  ? 'border-red-500 focus:ring-red-500'
+                  : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
+              ]"
+            />
+            <p v-if="memberError" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ memberError }}</p>
+          </div>
           <button
             type="submit"
             :disabled="actionInProgress || addLoading"
@@ -180,7 +211,6 @@
             {{ addLoading ? 'Adding...' : 'Add' }}
           </button>
         </form>
-        <p v-if="addError" class="text-sm text-red-600 dark:text-red-400 mt-2">{{ addError }}</p>
       </div>
 
       <!-- Tasks section -->
@@ -190,8 +220,9 @@
           <NuxtLink
             :to="`/projects/${project.id}/tasks?view=board`"
             class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+            aria-label="View all tasks"
           >
-            <ExternalLinkIcon :size="18" />
+            <ExternalLinkIcon :size="18" aria-hidden="true" />
           </NuxtLink>
         </div>
         <TaskList
@@ -204,7 +235,6 @@
           :owner-id="project.owner_id"
           :owner-name="ownerName"
           @task-count="taskCount = $event"
-          @editing-change="taskEditing = $event"
         />
       </div>
     </template>
@@ -212,15 +242,15 @@
 </template>
 
 <script setup lang="ts">
-import type { Project, ProjectMember } from '~/types'
 import { ExternalLink as ExternalLinkIcon } from '@lucide/vue'
 
+definePageMeta({ title: 'Project' })
+
 const route = useRoute()
-const router = useRouter()
 const user = useSupabaseUser()
-const supabase = useSupabaseClient()
 
 const { actionInProgress, setActionInProgress } = useActionState()
+const { notify } = useNotification()
 
 const {
   getProject,
@@ -231,6 +261,7 @@ const {
   addProjectMember,
   removeProjectMember,
   isEmailConfirmed,
+  findProfileByIdentifier,
 } = useSupabase()
 
 const project = ref<Project | null>(null)
@@ -238,7 +269,6 @@ const members = ref<ProjectMember[]>([])
 const ownerName = ref('')
 const loading = ref(true)
 const taskCount = ref(0)
-const taskEditing = ref(false)
 
 const isOwner = computed(() => project.value?.owner_id === user.value?.id)
 
@@ -249,6 +279,18 @@ const editError = ref('')
 const editSuccess = ref(false)
 const editForm = ref({ name: '', description: '', archived: false })
 
+const {
+  validate: validateEdit,
+  getError: editErrorField,
+  clearErrors: clearEditErrors,
+} = useValidation(editForm, {
+  name: [
+    { rule: 'required', message: 'Project name is required' },
+    { rule: 'maxLength', value: 100, message: 'Project name must be 100 characters or less' },
+  ],
+  description: [{ rule: 'maxLength', value: 500, message: 'Description must be 500 characters or less' }],
+})
+
 const startEditing = () => {
   if (!project.value) return
   editForm.value = {
@@ -258,6 +300,7 @@ const startEditing = () => {
   }
   editError.value = ''
   editSuccess.value = false
+  clearEditErrors()
   editing.value = true
   setActionInProgress(true)
 }
@@ -265,6 +308,7 @@ const startEditing = () => {
 const cancelEditing = () => {
   editing.value = false
   editError.value = ''
+  clearEditErrors()
   setActionInProgress(false)
 }
 
@@ -272,6 +316,10 @@ const handleEditSubmit = async () => {
   if (!project.value) return
   editError.value = ''
   editSuccess.value = false
+  if (!validateEdit()) {
+    notify('Please fix the form errors', 'error')
+    return
+  }
   saving.value = true
   const updated = await updateProject(project.value.id, {
     name: editForm.value.name,
@@ -283,13 +331,11 @@ const handleEditSubmit = async () => {
     project.value = updated
     editing.value = false
     setActionInProgress(false)
-    editSuccess.value = true
-    setTimeout(() => {
-      editSuccess.value = false
-    }, 2000)
+    notify('Project updated successfully')
   } else {
     setActionInProgress(false)
     editError.value = 'Failed to update project'
+    notify('Failed to update project', 'error')
   }
 }
 
@@ -303,15 +349,16 @@ watch(confirmDelete, (val) => {
 const handleDelete = async () => {
   if (!project.value) return
   await deleteProject(project.value.id)
-  await router.push('/dashboard')
+  notify('Project deleted successfully')
+  await navigateTo('/dashboard')
 }
 
 // Members manage state
 const managingMembers = ref(false)
 const newMemberIdentifier = ref('')
 const addLoading = ref(false)
-const addError = ref('')
 const confirmingRemove = ref<string | null>(null)
+const memberError = ref('')
 
 watch(confirmingRemove, (val) => {
   setActionInProgress(val !== null)
@@ -325,7 +372,7 @@ onMounted(async () => {
   const id = route.params.id as string
   const p = await getProject(id)
   if (!p) {
-    await router.push('/dashboard')
+    await navigateTo('/dashboard')
     return
   }
   project.value = p
@@ -337,44 +384,43 @@ onMounted(async () => {
 })
 
 const handleAddMember = async () => {
-  addError.value = ''
+  memberError.value = ''
+  if (!newMemberIdentifier.value.trim()) {
+    memberError.value = 'Enter a username or email'
+    notify('Please enter a username or email', 'error')
+    return
+  }
+
   addLoading.value = true
 
   const p = project.value
   if (!p) {
-    addError.value = 'Project not loaded'
     addLoading.value = false
     return
   }
 
-  const profile = (
-    await supabase
-      .from('profiles')
-      .select('id, email, username')
-      .or(`email.eq.${newMemberIdentifier.value},username.eq.${newMemberIdentifier.value}`)
-      .maybeSingle()
-  ).data as { id: string; email: string; username: string } | null
+  const profile = await findProfileByIdentifier(newMemberIdentifier.value)
 
   if (!profile) {
-    addError.value = 'User not found'
+    notify('User not found', 'error')
     addLoading.value = false
     return
   }
 
   if (profile.id === p.owner_id) {
-    addError.value = 'User is the project owner'
+    notify('User is the project owner', 'error')
     addLoading.value = false
     return
   }
 
   if (members.value.some((m) => m.user_id === profile.id)) {
-    addError.value = 'User is already a member'
+    notify('User is already a member', 'error')
     addLoading.value = false
     return
   }
 
   if (!(await isEmailConfirmed(profile.id))) {
-    addError.value = 'User has not verified their email'
+    notify('User has not verified their email', 'error')
     addLoading.value = false
     return
   }
@@ -383,6 +429,7 @@ const handleAddMember = async () => {
   members.value = await getProjectMembers(route.params.id as string)
   newMemberIdentifier.value = ''
   addLoading.value = false
+  notify('Member added successfully')
 }
 
 const taskListRef = ref<{ loadTasks: () => Promise<void> } | null>(null)
@@ -392,11 +439,12 @@ const handleRemoveMember = async (userId: string) => {
   members.value = await getProjectMembers(route.params.id as string)
   confirmingRemove.value = null
   await taskListRef.value?.loadTasks()
+  notify('Member removed successfully')
 }
 
 function closeManage() {
   managingMembers.value = false
   confirmingRemove.value = null
-  addError.value = ''
+  memberError.value = ''
 }
 </script>

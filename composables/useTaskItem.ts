@@ -1,4 +1,4 @@
-import type { Task, TaskStatus, TaskPriority } from '~/types'
+import type { TaskPriority, TaskStatus } from '~/types'
 
 export function useTaskItem() {
   const editing = ref(false)
@@ -12,11 +12,13 @@ export function useTaskItem() {
     assignee_id: '',
   })
 
+  const taskErrors = ref<{ name?: string }>({})
+
   function initEditForm(task: Task) {
     editForm.value = {
       name: task.name,
-      status: task.status as TaskStatus,
-      priority: task.priority as TaskPriority,
+      status: task.status,
+      priority: task.priority,
       assignee_id: task.assignee_id,
     }
   }
@@ -24,11 +26,13 @@ export function useTaskItem() {
   function startEditing(task: Task) {
     initEditForm(task)
     editing.value = true
+    taskErrors.value = {}
     nextTick(() => editNameInput.value?.focus())
   }
 
   function cancelEdit() {
     editing.value = false
+    taskErrors.value = {}
   }
 
   function buildUpdates(task: Task): Partial<Pick<Task, 'name' | 'status' | 'priority' | 'assignee_id'>> {
@@ -42,6 +46,22 @@ export function useTaskItem() {
     return updates
   }
 
+  function validateTask(isNew: boolean): boolean {
+    taskErrors.value = {}
+    if (isNew) {
+      const name = editForm.value.name.trim()
+      if (!name) {
+        taskErrors.value = { name: 'Task name is required' }
+        return false
+      }
+      if (name.length > 200) {
+        taskErrors.value = { name: 'Task name must be 200 characters or less' }
+        return false
+      }
+    }
+    return true
+  }
+
   function confirmDelete() {
     confirmingDelete.value = true
   }
@@ -50,7 +70,7 @@ export function useTaskItem() {
     confirmingDelete.value = false
   }
 
-  const statusLabel = (status: string) => {
+  const statusLabel = (status: TaskStatus) => {
     switch (status) {
       case 'pending':
         return 'Pending'
@@ -63,7 +83,7 @@ export function useTaskItem() {
     }
   }
 
-  const priorityClass = (priority: string) => {
+  const priorityClass = (priority: TaskPriority) => {
     switch (priority) {
       case 'low':
         return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
@@ -76,7 +96,7 @@ export function useTaskItem() {
     }
   }
 
-  const statusClass = (status: string) => {
+  const statusClass = (status: TaskStatus) => {
     switch (status) {
       case 'pending':
         return 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
@@ -94,9 +114,11 @@ export function useTaskItem() {
     confirmingDelete,
     editNameInput,
     editForm,
+    taskErrors,
     startEditing,
     cancelEdit,
     buildUpdates,
+    validateTask,
     confirmDelete,
     cancelDelete,
     statusLabel,
