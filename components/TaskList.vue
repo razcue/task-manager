@@ -32,26 +32,42 @@
           Board
         </button>
       </div>
-      <div class="flex items-center gap-2">
-        <select
+      <div class="flex sm:hidden items-center gap-2">
+        <StyledSelect
           v-if="viewMode === 'list'"
           v-model="sortBy"
+          compact
           :disabled="anyActionInProgress"
+          :options="sortOptions"
           aria-label="Sort tasks"
-          class="text-sm bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1.5 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <option value="created_at">Created</option>
-          <option value="priority">Priority</option>
-          <option value="name">Name</option>
-        </select>
+        />
         <button
           v-if="canCreate"
           :disabled="anyActionInProgress"
-          class="flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
+          class="btn btn-primary py-[0.3rem] px-[0.5rem] text-xs"
           aria-label="Add task"
           @click="handleAddTask"
         >
-          <PlusIcon :size="16" aria-hidden="true" />
+          <PlusIcon :size="16" class="-translate-y-px" aria-hidden="true" />
+          {{ viewMode === 'list' ? '' : 'Add' }}
+        </button>
+      </div>
+      <div class="hidden sm:flex items-center gap-2">
+        <StyledSelect
+          v-if="viewMode === 'list'"
+          v-model="sortBy"
+          :disabled="anyActionInProgress"
+          :options="sortOptions"
+          aria-label="Sort tasks"
+        />
+        <button
+          v-if="canCreate"
+          :disabled="anyActionInProgress"
+          class="btn btn-primary"
+          aria-label="Add task"
+          @click="handleAddTask"
+        >
+          <PlusIcon :size="16" class="-translate-y-px" aria-hidden="true" />
           Add
         </button>
       </div>
@@ -81,7 +97,7 @@
     <!-- List view -->
     <template v-else-if="sortedTasks.length > 0">
       <div class="space-y-1">
-        <TaskItem
+        <ListTaskItem
           v-for="task in sortedTasks"
           :key="task.id"
           :task="task"
@@ -134,6 +150,11 @@ const tasks = ref<Task[]>([])
 const loading = ref(true)
 const viewMode = ref<'list' | 'board'>('board')
 const sortBy = ref<'created_at' | 'priority' | 'name'>('created_at')
+const sortOptions = [
+  { value: 'created_at', label: 'Created' },
+  { value: 'priority', label: 'Priority' },
+  { value: 'name', label: 'Name' },
+]
 const autoEditTaskId = ref<string | null>(null)
 
 watch(

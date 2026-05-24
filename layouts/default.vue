@@ -1,68 +1,80 @@
 <template>
   <div class="min-h-screen bg-gray-50 dark:bg-gray-950">
     <nav v-if="user" class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16 items-center">
-          <div class="flex items-center gap-4">
-            <NuxtLink to="/dashboard" class="text-xl font-bold text-gray-900 dark:text-white"> TaskManager </NuxtLink>
-            <span v-if="onProjectPage" class="text-gray-300 dark:text-gray-600">/</span>
-            <div v-if="projects.length === 0" class="flex items-center gap-2">
-              <button
-                class="text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-3 py-1.5 font-medium"
-                @click="goToCreateProject"
-              >
-                + Create Project
-              </button>
+      <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div class="flex justify-between h-14 sm:h-16 items-center gap-2">
+          <div class="flex items-center gap-2 sm:gap-4 min-w-0">
+            <NuxtLink
+              to="/dashboard"
+              class="inline-flex items-center gap-2 text-lg sm:text-xl font-bold text-gray-900 dark:text-white shrink-0"
+            >
+              TaskManager
+              <HouseIcon class="block sm:hidden" :size="18" aria-hidden="true" />
+            </NuxtLink>
+            <span v-if="onProjectPage" class="hidden sm:block text-gray-300 dark:text-gray-600 shrink-0">/</span>
+            <div v-if="projects.length === 0" class="hidden sm:block shrink-0">
+              <button class="btn btn-primary btn-sm" @click="goToCreateProject">+ Create Project</button>
             </div>
-            <div v-else-if="onProjectPage" ref="projectDropdownRef" class="relative">
-              <button
-                class="flex items-center gap-1 text-sm bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                :aria-expanded="showProjectDropdown"
-                aria-haspopup="listbox"
-                @click="showProjectDropdown = !showProjectDropdown"
-              >
-                <span class="max-w-36 truncate">{{ currentProject?.name || 'Project' }}</span>
-                <ChevronDownIcon :size="14" class="shrink-0" aria-hidden="true" />
-              </button>
-              <div
-                v-if="showProjectDropdown"
-                role="listbox"
-                class="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 py-1"
-              >
-                <div
-                  v-for="p in projects"
-                  :key="p.id"
-                  class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-800"
+            <template v-else-if="onProjectPage">
+              <div ref="projectDropdownRef" class="hidden sm:block relative min-w-0">
+                <button
+                  class="flex items-center justify-between gap-1 text-sm bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-56"
+                  :aria-expanded="showProjectDropdown"
+                  aria-haspopup="listbox"
+                  @click="showProjectDropdown = !showProjectDropdown"
                 >
-                  <button
-                    class="flex-1 text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 truncate"
-                    @click="goToProjectTasks(p.id)"
+                  <span class="truncate">{{ currentProject?.name || 'Project' }}</span>
+                  <ChevronDownIcon :size="14" class="shrink-0" aria-hidden="true" />
+                </button>
+                <div
+                  v-if="showProjectDropdown"
+                  role="listbox"
+                  class="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 py-1"
+                >
+                  <div
+                    v-for="p in projects"
+                    :key="p.id"
+                    class="flex items-center hover:bg-gray-50 dark:hover:bg-gray-800"
                   >
-                    {{ p.name }}
-                  </button>
-                  <button
-                    class="px-2 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    :aria-label="'Settings for ' + p.name"
-                    @click="goToProjectSettings(p.id)"
-                  >
-                    <SettingsIcon :size="14" aria-hidden="true" />
-                  </button>
-                </div>
-                <div class="border-t border-gray-200 dark:border-gray-800">
-                  <button
-                    class="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    @click="goToCreateProject"
-                  >
-                    + New Project
-                  </button>
+                    <button
+                      class="flex-1 text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 truncate"
+                      @click="goToProjectTasks(p.id)"
+                    >
+                      {{ p.name }}
+                    </button>
+                    <button
+                      class="px-2 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      :aria-label="'Settings for ' + p.name"
+                      @click="goToProjectSettings(p.id)"
+                    >
+                      <SettingsIcon :size="14" aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div class="border-t border-gray-200 dark:border-gray-800">
+                    <button
+                      class="w-full inline-flex items-center justify-center gap-1 text-left px-3 py-2 text-sm text-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      @click="goToCreateProject"
+                    >
+                      <PlusIcon :size="16" class="-translate-y-px" aria-hidden="true" />
+                      New Project
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+              <NuxtLink
+                to="/dashboard"
+                class="block sm:hidden inline-flex items-center gap-2 text-sm font-bold text-gray-400 dark:text-white shrink-0 animate-bounce"
+              >
+                projects
+              </NuxtLink>
+            </template>
           </div>
-          <div class="flex items-center gap-4">
-            <span class="text-sm text-gray-500 dark:text-gray-400">{{ displayName }}</span>
+          <div class="flex items-center gap-2 sm:gap-4 shrink-0">
+            <span class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate max-w-20 sm:max-w-none">{{
+              displayName
+            }}</span>
             <button
-              class="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              class="btn btn-ghost btn-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
               @click="handleLogout"
             >
               Logout
@@ -79,7 +91,12 @@
 </template>
 
 <script setup lang="ts">
-import { ChevronDown as ChevronDownIcon, Settings as SettingsIcon } from '@lucide/vue'
+import {
+  ListTodo as HouseIcon,
+  ChevronDown as ChevronDownIcon,
+  Settings as SettingsIcon,
+  Plus as PlusIcon,
+} from '@lucide/vue'
 
 const user = useSupabaseUser()
 const supabase = useSupabaseClient()

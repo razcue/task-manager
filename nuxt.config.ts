@@ -3,6 +3,14 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   modules: ['@nuxt/eslint', '@nuxtjs/supabase', '@nuxtjs/tailwindcss', '@nuxtjs/color-mode'],
+  vue: {
+    compilerOptions: {
+      isCustomElement: (tag: string) => tag === 'selectedcontent',
+    },
+  },
+  tailwindcss: {
+    cssPath: '~/assets/css/main.css',
+  },
   supabase: {
     redirect: false,
   },

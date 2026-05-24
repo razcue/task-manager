@@ -9,10 +9,7 @@
           <template v-if="!editing">
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-bold text-gray-900 dark:text-white truncate">{{ project.name }}</h1>
-              <span
-                v-if="project.archived"
-                class="shrink-0 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full"
-              >
+              <span v-if="project.archived" class="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
                 Archived
               </span>
             </div>
@@ -21,42 +18,28 @@
           <template v-else>
             <div class="space-y-3 max-w-lg">
               <div>
-                <label for="editName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Name <span class="text-red-500">*</span></label
-                >
+                <label for="editName" class="label">Name <span class="text-red-500">*</span></label>
                 <input
                   id="editName"
                   v-model="editForm.name"
                   type="text"
                   maxlength="100"
-                  :class="[
-                    'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-                    editErrorField('name')
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
-                  ]"
+                  :class="['input', editErrorField('name') ? 'input-error' : '']"
                 />
-                <p v-if="editErrorField('name')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p v-if="editErrorField('name')" class="error-text">
                   {{ editErrorField('name') }}
                 </p>
               </div>
               <div>
-                <label for="editDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-                  >Description</label
-                >
+                <label for="editDescription" class="label">Description</label>
                 <textarea
                   id="editDescription"
                   v-model="editForm.description"
                   rows="3"
                   maxlength="500"
-                  :class="[
-                    'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-                    editErrorField('description')
-                      ? 'border-red-500 focus:ring-red-500'
-                      : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
-                  ]"
+                  :class="['textarea', editErrorField('description') ? 'input-error' : '']"
                 />
-                <p v-if="editErrorField('description')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+                <p v-if="editErrorField('description')" class="error-text">
                   {{ editErrorField('description') }}
                 </p>
               </div>
@@ -67,9 +50,9 @@
                   type="checkbox"
                   class="rounded border-gray-300 dark:border-gray-700"
                 />
-                <span class="text-sm text-gray-700 dark:text-gray-300">Archived</span>
+                <span class="text-sm text-gray-700 dark:text-gray-300 translate-y-px">Archived</span>
               </label>
-              <p v-if="editError" class="text-sm text-red-600 dark:text-red-400">{{ editError }}</p>
+              <p v-if="editError" class="error-text">{{ editError }}</p>
             </div>
           </template>
           <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Owner: {{ ownerName }}</p>
@@ -77,52 +60,66 @@
 
         <div class="flex flex-col items-end gap-1 shrink-0 ml-4">
           <!-- View mode buttons -->
-          <div v-if="isOwner && !editing && !confirmDelete" class="flex gap-2">
-            <button
-              :disabled="actionInProgress"
-              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 disabled:opacity-40 disabled:cursor-not-allowed"
-              @click="startEditing"
-            >
-              Edit
-            </button>
-            <button
-              :disabled="actionInProgress"
-              class="px-3 py-1.5 text-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed"
-              @click="confirmDelete = true"
-            >
-              Delete
-            </button>
-          </div>
+          <template v-if="isOwner && !editing && !confirmDelete">
+            <div class="hidden sm:flex flex-wrap gap-2 justify-end">
+              <button :disabled="actionInProgress" class="btn btn-secondary btn-sm" @click="startEditing">Edit</button>
+              <button
+                :disabled="actionInProgress"
+                class="btn btn-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed"
+                @click="confirmDelete = true"
+              >
+                Delete
+              </button>
+            </div>
+            <div class="flex flex-col sm:hidden flex-wrap gap-2 justify-end">
+              <button :disabled="actionInProgress" class="btn btn-secondary btn-sm px-2 py-2" @click="startEditing">
+                <PencilIcon :size="14" aria-hidden="true" />
+              </button>
+              <button
+                :disabled="actionInProgress"
+                class="btn btn-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-2"
+                @click="confirmDelete = true"
+              >
+                <Trash2Icon :size="14" aria-hidden="true" />
+              </button>
+            </div>
+          </template>
           <!-- Edit mode buttons -->
           <div v-if="isOwner && editing" class="flex gap-2">
-            <button
-              :disabled="saving"
-              class="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
-              @click="handleEditSubmit"
-            >
-              {{ saving ? 'Saving...' : 'Save' }}
-            </button>
-            <button
-              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
-              @click="cancelEditing"
-            >
-              Cancel
-            </button>
+            <div class="hidden sm:flex gap-2">
+              <button :disabled="saving" class="btn btn-primary btn-sm" @click="handleEditSubmit">
+                {{ saving ? 'Saving...' : 'Save' }}
+              </button>
+              <button class="btn btn-secondary btn-sm" @click="cancelEditing">Cancel</button>
+            </div>
+            <div class="flex flex-col sm:hidden gap-2">
+              <button :disabled="saving" class="btn btn-primary btn-sm px-2 py-2" @click="handleEditSubmit">
+                <CheckIcon :size="14" aria-hidden="true" />
+              </button>
+              <button class="btn btn-secondary btn-sm px-2 py-2" @click="cancelEditing">
+                <XIcon :size="14" aria-hidden="true" />
+              </button>
+            </div>
           </div>
           <!-- Delete confirm buttons -->
-          <div v-if="isOwner && confirmDelete" class="flex gap-2">
-            <button class="px-3 py-1.5 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg" @click="handleDelete">
-              Delete
-            </button>
-            <button
-              class="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-700 rounded-lg text-gray-700 dark:text-gray-300"
-              @click="confirmDelete = false"
-            >
-              Cancel
-            </button>
+          <div v-if="isOwner && confirmDelete">
+            <div class="hidden sm:flex gap-2">
+              <button class="btn btn-danger btn-sm" @click="handleDelete">Delete</button>
+              <button class="btn btn-secondary btn-sm" @click="confirmDelete = false">Cancel</button>
+            </div>
+            <div class="flex sm:hidden flex-col gap-2">
+              <button class="btn btn-danger btn-sm px-2 py-2" @click="handleDelete">
+                <Trash2Icon :size="14" aria-hidden="true" />
+              </button>
+              <button class="btn btn-secondary btn-sm px-2 py-2" @click="confirmDelete = false">
+                <XIcon :size="14" aria-hidden="true" />
+              </button>
+            </div>
           </div>
-          <span v-if="confirmDelete" class="text-xs text-gray-500 dark:text-gray-400">Are you sure?</span>
-          <span v-if="editSuccess" class="text-xs text-green-600 dark:text-green-400">Saved</span>
+          <span v-if="confirmDelete" class="hidden sm:block text-xs text-gray-500 dark:text-gray-400"
+            >Are you sure?</span
+          >
+          <span v-if="editSuccess" class="hidden sm:block text-xs text-green-600 dark:text-green-400">Saved</span>
         </div>
       </div>
 
@@ -133,26 +130,16 @@
           <button
             v-if="isOwner && !managingMembers"
             :disabled="actionInProgress"
-            class="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 disabled:opacity-40 disabled:cursor-not-allowed"
+            class="btn btn-ghost btn-sm"
             @click="managingMembers = true"
           >
             Manage
           </button>
-          <button
-            v-if="isOwner && managingMembers"
-            class="text-sm text-gray-600 hover:text-gray-700 dark:text-gray-400"
-            @click="closeManage"
-          >
-            Close
-          </button>
+          <button v-if="isOwner && managingMembers" class="btn btn-ghost btn-sm" @click="closeManage">Close</button>
         </div>
 
         <ul v-if="members.length > 0" class="space-y-2">
-          <li
-            v-for="m in members"
-            :key="m.id"
-            class="flex items-center justify-between p-3 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800"
-          >
+          <li v-for="m in members" :key="m.id" class="flex items-center justify-between p-3 card">
             <div class="flex items-center gap-2">
               <span class="text-sm text-gray-900 dark:text-white">{{ m.user?.username || m.user?.email }}</span>
               <span v-if="m.user_id === project.owner_id" class="text-xs text-gray-400">(owner)</span>
@@ -160,33 +147,43 @@
             </div>
             <template v-if="managingMembers && isOwner && m.user_id !== project.owner_id">
               <template v-if="confirmingRemove === m.user_id">
-                <button
-                  class="px-2 py-0.5 text-xs rounded bg-red-600 hover:bg-red-700 text-white font-medium"
-                  @click="handleRemoveMember(m.user_id)"
-                >
-                  Remove
-                </button>
-                <button
-                  class="px-2 py-0.5 text-xs rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium"
-                  @click="confirmingRemove = null"
-                >
-                  Cancel
-                </button>
+                <div class="flex items-center gap-1">
+                  <button
+                    class="text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                    :aria-label="'Confirm remove ' + (m.user?.username || m.user?.email)"
+                    @click="handleRemoveMember(m.user_id)"
+                  >
+                    <CheckIcon :size="16" aria-hidden="true" />
+                  </button>
+                  <button
+                    class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                    aria-label="Cancel remove"
+                    @click="confirmingRemove = null"
+                  >
+                    <XIcon :size="16" aria-hidden="true" />
+                  </button>
+                </div>
               </template>
               <button
                 v-else
-                class="text-xs text-red-600 hover:text-red-700 dark:text-red-400 disabled:opacity-40 disabled:cursor-not-allowed"
+                class="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 :disabled="actionInProgress"
+                :aria-label="'Remove ' + (m.user?.username || m.user?.email)"
                 @click="confirmingRemove = m.user_id"
               >
-                Remove
+                <Trash2Icon :size="16" aria-hidden="true" />
               </button>
             </template>
           </li>
         </ul>
         <p v-else class="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No members yet</p>
 
-        <form v-if="managingMembers && isOwner" novalidate class="flex gap-2 mt-4" @submit.prevent="handleAddMember">
+        <form
+          v-if="managingMembers && isOwner"
+          novalidate
+          class="flex gap-2 mt-4 items-start"
+          @submit.prevent="handleAddMember"
+        >
           <div class="flex-1">
             <input
               v-model="newMemberIdentifier"
@@ -194,20 +191,12 @@
               placeholder="Enter username or email"
               aria-label="Add member by username or email"
               :disabled="actionInProgress"
-              :class="[
-                'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm disabled:opacity-40 disabled:cursor-not-allowed focus:ring-2',
-                memberError
-                  ? 'border-red-500 focus:ring-red-500'
-                  : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
-              ]"
+              :class="['input', memberError ? 'input-error' : '']"
             />
-            <p v-if="memberError" class="mt-1 text-sm text-red-600 dark:text-red-400">{{ memberError }}</p>
+            <p v-if="memberError" class="error-text">{{ memberError }}</p>
           </div>
-          <button
-            type="submit"
-            :disabled="actionInProgress || addLoading"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50"
-          >
+          <button type="submit" :disabled="actionInProgress || addLoading" class="btn btn-primary px-3 py-[0.438rem] shrink-0">
+            <PlusIcon v-if="!addLoading" :size="16" aria-hidden="true" />
             {{ addLoading ? 'Adding...' : 'Add' }}
           </button>
         </form>
@@ -242,7 +231,14 @@
 </template>
 
 <script setup lang="ts">
-import { ExternalLink as ExternalLinkIcon } from '@lucide/vue'
+import {
+  ExternalLink as ExternalLinkIcon,
+  Plus as PlusIcon,
+  Trash2 as Trash2Icon,
+  Check as CheckIcon,
+  X as XIcon,
+  Pencil as PencilIcon,
+} from '@lucide/vue'
 
 definePageMeta({ title: 'Project' })
 

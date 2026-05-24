@@ -1,54 +1,40 @@
 <template>
-  <main class="flex items-center justify-center min-h-[80vh]">
+  <main class="flex items-center justify-center min-h-dvh px-4">
     <div class="w-full max-w-sm">
       <h1 class="text-2xl font-bold text-center mb-8 text-gray-900 dark:text-white">Login</h1>
       <form novalidate class="space-y-4" @submit.prevent="handleLogin">
         <div>
-          <label for="loginInput" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >Username or Email <span class="text-red-500">*</span></label
-          >
+          <label for="loginInput" class="label">Username or Email <span class="text-red-500">*</span></label>
           <input
             id="loginInput"
             v-model="form.loginInput"
             type="text"
-            :class="[
-              'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-              getError('loginInput')
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-transparent',
-            ]"
+            name="loginInput"
+            autocomplete="username"
+            :class="['input', getError('loginInput') ? 'input-error' : '']"
             placeholder="username or email"
           />
-          <p v-if="getError('loginInput')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p v-if="getError('loginInput')" class="error-text">
             {{ getError('loginInput') }}
           </p>
         </div>
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >Password <span class="text-red-500">*</span></label
-          >
+          <label for="password" class="label">Password <span class="text-red-500">*</span></label>
           <input
             id="password"
             v-model="form.password"
             type="password"
-            :class="[
-              'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-              getError('password')
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-transparent',
-            ]"
+            name="password"
+            autocomplete="current-password"
+            :class="['input', getError('password') ? 'input-error' : '']"
             placeholder="••••••"
           />
-          <p v-if="getError('password')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p v-if="getError('password')" class="error-text">
             {{ getError('password') }}
           </p>
         </div>
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50"
-        >
+        <p v-if="error" class="error-text">{{ error }}</p>
+        <button type="submit" :disabled="loading" class="btn btn-primary w-full">
           {{ loading ? 'Signing in...' : 'Sign in' }}
         </button>
       </form>

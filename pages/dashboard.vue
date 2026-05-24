@@ -2,12 +2,7 @@
   <div>
     <div class="flex items-center justify-between mb-8">
       <h1 class="text-2xl font-bold text-gray-900 dark:text-white">My Projects</h1>
-      <NuxtLink
-        to="/projects/create"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm"
-      >
-        + New Project
-      </NuxtLink>
+      <NuxtLink to="/projects/create" class="btn btn-primary btn-sm"> + New Project </NuxtLink>
     </div>
 
     <p v-if="loading" class="text-gray-500 dark:text-gray-400">Loading...</p>
@@ -24,14 +19,11 @@
         v-for="project in projects"
         :key="project.id"
         :to="`/projects/${project.id}`"
-        class="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-5 hover:shadow-md transition-shadow block"
+        class="card p-5 hover:shadow-md transition-shadow block"
       >
         <div class="flex items-start justify-between gap-2">
           <h2 class="font-semibold text-gray-900 dark:text-white truncate">{{ project.name }}</h2>
-          <span
-            v-if="project.archived"
-            class="shrink-0 px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-full"
-          >
+          <span v-if="project.archived" class="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
             Archived
           </span>
         </div>

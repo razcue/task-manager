@@ -3,55 +3,37 @@
     <h1 class="text-2xl font-bold mb-8 text-gray-900 dark:text-white">Create Project</h1>
     <form novalidate class="space-y-4" @submit.prevent="handleSubmit">
       <div>
-        <label for="projectName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >Name <span class="text-red-500">*</span></label
-        >
+        <label for="projectName" class="label">Name <span class="text-red-500">*</span></label>
         <input
           id="projectName"
           v-model="form.name"
           type="text"
           maxlength="100"
-          :class="[
-            'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-            getError('name')
-              ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
-          ]"
+          :class="['input', getError('name') ? 'input-error' : '']"
         />
-        <p v-if="getError('name')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+        <p v-if="getError('name')" class="error-text">
           {{ getError('name') }}
         </p>
       </div>
       <div>
-        <label for="projectDescription" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-          >Description</label
-        >
+        <label for="projectDescription" class="label">Description</label>
         <textarea
           id="projectDescription"
           v-model="form.description"
           rows="3"
           maxlength="500"
-          :class="[
-            'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-            getError('description')
-              ? 'border-red-500 focus:ring-red-500'
-              : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
-          ]"
+          :class="['textarea', getError('description') ? 'input-error' : '']"
         />
-        <p v-if="getError('description')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+        <p v-if="getError('description')" class="error-text">
           {{ getError('description') }}
         </p>
       </div>
-      <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
+      <p v-if="error" class="error-text">{{ error }}</p>
       <div class="flex gap-3">
-        <button
-          type="submit"
-          :disabled="loading"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm disabled:opacity-50"
-        >
+        <button type="submit" :disabled="loading" class="btn btn-primary btn-sm">
           {{ loading ? 'Creating...' : 'Create' }}
         </button>
-        <NuxtLink to="/dashboard" class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">Cancel</NuxtLink>
+        <NuxtLink to="/dashboard" class="btn btn-ghost btn-sm">Cancel</NuxtLink>
       </div>
     </form>
   </div>

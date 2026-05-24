@@ -1,7 +1,7 @@
 <template>
-  <div class="grid grid-cols-3 gap-4">
-    <div v-for="col in columns" :key="col.value" class="space-y-3">
-      <div class="flex items-center justify-between">
+  <div class="flex gap-4 overflow-x-auto snap-x snap-mandatory lg:grid lg:grid-cols-3 pb-2">
+    <div v-for="col in columns" :key="col.value" class="min-w-[280px] lg:min-w-0 space-y-3">
+      <div class="flex items-center justify-start gap-4">
         <h2 class="text-sm font-semibold text-gray-900 dark:text-white">{{ col.label }}</h2>
         <span class="text-xs text-gray-400">{{ col.tasks.length }}</span>
       </div>

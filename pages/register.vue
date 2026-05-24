@@ -1,71 +1,46 @@
 <template>
-  <main class="flex items-center justify-center min-h-[80vh]">
+  <main class="flex items-center justify-center min-h-dvh px-4">
     <div class="w-full max-w-sm">
       <h1 class="text-2xl font-bold text-center mb-8 text-gray-900 dark:text-white">Register</h1>
       <form novalidate class="space-y-4" @submit.prevent="handleRegister">
         <div>
-          <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >Username <span class="text-red-500">*</span></label
-          >
+          <label for="username" class="label">Username <span class="text-red-500">*</span></label>
           <input
             id="username"
             v-model="form.username"
             type="text"
-            :class="[
-              'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-              getError('username')
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-transparent',
-            ]"
+            :class="['input', getError('username') ? 'input-error' : '']"
           />
-          <p v-if="getError('username')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p v-if="getError('username')" class="error-text">
             {{ getError('username') }}
           </p>
         </div>
         <div>
-          <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >Email <span class="text-red-500">*</span></label
-          >
+          <label for="email" class="label">Email <span class="text-red-500">*</span></label>
           <input
             id="email"
             v-model="form.email"
             type="email"
-            :class="[
-              'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-              getError('email')
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-transparent',
-            ]"
+            :class="['input', getError('email') ? 'input-error' : '']"
           />
-          <p v-if="getError('email')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p v-if="getError('email')" class="error-text">
             {{ getError('email') }}
           </p>
         </div>
         <div>
-          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-            >Password <span class="text-red-500">*</span></label
-          >
+          <label for="password" class="label">Password <span class="text-red-500">*</span></label>
           <input
             id="password"
             v-model="form.password"
             type="password"
-            :class="[
-              'w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2',
-              getError('password')
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-transparent',
-            ]"
+            :class="['input', getError('password') ? 'input-error' : '']"
           />
-          <p v-if="getError('password')" class="mt-1 text-sm text-red-600 dark:text-red-400">
+          <p v-if="getError('password')" class="error-text">
             {{ getError('password') }}
           </p>
         </div>
-        <p v-if="error" class="text-sm text-red-600 dark:text-red-400">{{ error }}</p>
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg disabled:opacity-50"
-        >
+        <p v-if="error" class="error-text">{{ error }}</p>
+        <button type="submit" :disabled="loading" class="btn btn-primary w-full">
           {{ loading ? 'Creating account...' : 'Create account' }}
         </button>
       </form>
