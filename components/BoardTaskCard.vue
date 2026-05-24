@@ -18,8 +18,8 @@
         </div>
         <div v-if="confirmingDelete" class="flex items-center gap-2 mt-2 min-h-[22px]">
           <span class="text-xs text-gray-500">Delete this task?</span>
-          <button class="btn btn-danger text-xs px-2 py-0.5 rounded" @click.stop="handleDeleteConfirm">Delete</button>
-          <button class="btn btn-secondary text-xs px-2 py-0.5 rounded" @click.stop="cancelDelete">Cancel</button>
+          <button class="btn btn-danger btn-xs" @click.stop="handleDeleteConfirm">Delete</button>
+          <button class="btn btn-secondary btn-xs" @click.stop="cancelDelete">Cancel</button>
         </div>
         <div v-else class="flex items-center gap-1 mt-2 min-h-[22px]">
           <div class="min-w-content">
@@ -33,7 +33,7 @@
             </span>
           </div>
           <div class="min-w-16 flex-1">
-            <span class="block text-xs text-gray-400 truncate">
+            <span class="block text-xs text-gray-500 truncate">
               {{ assigneeName }}<span v-if="isMine" class="text-blue-500"> (you)</span>
             </span>
           </div>
@@ -62,16 +62,11 @@
             type="text"
             maxlength="200"
             aria-label="Task name"
-            :class="[
-              'w-full px-2 py-1 text-xs border rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:outline-none focus:ring-2 mb-2',
-              taskErrors.name
-                ? 'border-red-500 focus:ring-red-500'
-                : 'border-gray-300 dark:border-gray-700 focus:ring-blue-500',
-            ]"
+            :class="['input text-xs mb-2', taskErrors.name ? 'input-error' : '']"
+            :placeholder="taskErrors.name"
             @keyup.enter="handleSaveEdit"
             @keyup.escape="handleCancelEdit"
           />
-          <p v-if="taskErrors.name" class="error-text text-xs mb-2">{{ taskErrors.name }}</p>
         </div>
         <p v-else class="px-2 py-1 text-sm font-medium text-gray-900 dark:text-white truncate mb-2">
           {{ task.name }}

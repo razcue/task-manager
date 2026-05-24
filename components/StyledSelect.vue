@@ -8,18 +8,17 @@
     v-bind="$attrs"
     @change="onChange"
   >
-    <button>
+    <button v-pre>
       <selectedcontent></selectedcontent>
     </button>
     <option v-for="opt in options" :key="opt.value" :value="opt.value">
-      <span v-if="opt.icon" class="icon" aria-hidden="true">{{ opt.icon }}</span>
-      <span class="option-label">{{ opt.label }}</span>
+      {{ opt.icon ? opt.icon + ' ' : '' }}{{ opt.label }}
     </option>
   </select>
 </template>
 
 <script setup lang="ts">
-export interface StyledSelectOption {
+interface StyledSelectOption {
   value: string
   label: string
   icon?: string
@@ -163,18 +162,9 @@ option:checked {
   font-weight: 600;
 }
 
-option .icon {
-  font-size: 1.6rem;
-  text-box: trim-both cap alphabetic;
-}
-
 selectedcontent {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-selectedcontent .icon {
-  display: none;
 }
 </style>

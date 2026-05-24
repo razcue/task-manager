@@ -23,9 +23,7 @@
       >
         <div class="flex items-start justify-between gap-2">
           <h2 class="font-semibold text-gray-900 dark:text-white truncate">{{ project.name }}</h2>
-          <span v-if="project.archived" class="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-            Archived
-          </span>
+          <span v-if="project.archived" class="badge-archived">Archived</span>
         </div>
         <p class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
           {{ project.description || 'No description' }}

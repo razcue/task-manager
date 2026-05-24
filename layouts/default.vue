@@ -20,7 +20,7 @@
                 <button
                   class="flex items-center justify-between gap-1 text-sm bg-transparent border border-gray-300 dark:border-gray-700 rounded-lg px-2 py-1 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors w-56"
                   :aria-expanded="showProjectDropdown"
-                  aria-haspopup="listbox"
+                  aria-haspopup="true"
                   @click="showProjectDropdown = !showProjectDropdown"
                 >
                   <span class="truncate">{{ currentProject?.name || 'Project' }}</span>
@@ -28,8 +28,8 @@
                 </button>
                 <div
                   v-if="showProjectDropdown"
-                  role="listbox"
-                  class="absolute top-full left-0 mt-1 w-56 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-lg z-50 py-1"
+                  role="menu"
+                  class="absolute top-full left-0 mt-1 w-56 card shadow-lg z-50 py-1"
                 >
                   <div
                     v-for="p in projects"
@@ -38,12 +38,14 @@
                   >
                     <button
                       class="flex-1 text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 truncate"
+                      role="menuitem"
                       @click="goToProjectTasks(p.id)"
                     >
                       {{ p.name }}
                     </button>
                     <button
                       class="px-2 py-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                      role="menuitem"
                       :aria-label="'Settings for ' + p.name"
                       @click="goToProjectSettings(p.id)"
                     >
@@ -53,6 +55,7 @@
                   <div class="border-t border-gray-200 dark:border-gray-800">
                     <button
                       class="w-full inline-flex items-center justify-center gap-1 text-left px-3 py-2 text-sm text-blue-600 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      role="menuitem"
                       @click="goToCreateProject"
                     >
                       <PlusIcon :size="16" class="-translate-y-px" aria-hidden="true" />
@@ -73,12 +76,7 @@
             <span class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 truncate max-w-20 sm:max-w-none">{{
               displayName
             }}</span>
-            <button
-              class="btn btn-ghost btn-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-              @click="handleLogout"
-            >
-              Logout
-            </button>
+            <button class="btn btn-danger-ghost btn-sm" @click="handleLogout">Logout</button>
           </div>
         </div>
       </div>
@@ -92,7 +90,7 @@
 
 <script setup lang="ts">
 import {
-  ListTodo as HouseIcon,
+  House as HouseIcon,
   ChevronDown as ChevronDownIcon,
   Settings as SettingsIcon,
   Plus as PlusIcon,

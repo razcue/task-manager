@@ -1,5 +1,3 @@
-import type { UserProfile, Project, ProjectMember, TaskPriority, TaskStatus, Task } from '~/types'
-
 export const useSupabase = () => {
   const client = useSupabaseClient()
   const user = useSupabaseUser()
@@ -149,8 +147,6 @@ export const useSupabase = () => {
   }
 
   return {
-    client,
-    user,
     getProfile,
     getEmailByUsername,
     isEmailConfirmed,

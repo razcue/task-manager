@@ -1,7 +1,8 @@
-import type { ToastNotification } from '~/types'
-
 export function useNotification() {
+  onUnmounted(() => clearAllTimeouts())
   const notifications = useState<ToastNotification[]>('notifications', () => [])
+
+  const timeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
   function notify(message: string, type: 'success' | 'error' = 'success', duration = 4000) {
     const id = Date.now().toString() + Math.random().toString(36).slice(2, 9)
@@ -9,12 +10,21 @@ export function useNotification() {
     notifications.value = [...notifications.value, notification]
 
     if (duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         dismiss(id)
+        timeouts.delete(id)
       }, duration)
+      timeouts.set(id, timer)
     }
 
     return id
+  }
+
+  function clearAllTimeouts() {
+    for (const timer of timeouts.values()) {
+      clearTimeout(timer)
+    }
+    timeouts.clear()
   }
 
   function dismiss(id: string) {
@@ -25,5 +35,6 @@ export function useNotification() {
     notifications,
     notify,
     dismiss,
+    clearAllTimeouts,
   }
 }

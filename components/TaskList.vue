@@ -44,7 +44,7 @@
         <button
           v-if="canCreate"
           :disabled="anyActionInProgress"
-          class="btn btn-primary py-[0.3rem] px-[0.5rem] text-xs"
+          class="btn btn-primary py-1 px-2 text-xs"
           aria-label="Add task"
           @click="handleAddTask"
         >
@@ -116,7 +116,7 @@
       </div>
     </template>
 
-    <p v-else class="text-sm text-gray-400 dark:text-gray-500 py-8 text-center">No tasks yet</p>
+    <p v-else class="text-sm text-gray-500 dark:text-gray-500 py-8 text-center">No tasks yet</p>
 
     <p v-if="projectArchived && tasks.length > 0" class="mt-4 text-xs text-gray-500 dark:text-gray-400">
       This project is archived. Tasks are read-only.
@@ -130,7 +130,7 @@ import { List as ListIcon, Columns3 as Columns3Icon, Plus as PlusIcon } from '@l
 const props = defineProps<{
   projectId: string
   members: ProjectMember[]
-  currentUserId: string | undefined
+  currentUserId?: string
   isOwner: boolean
   projectArchived: boolean
   ownerId?: string
@@ -145,6 +145,7 @@ const emit = defineEmits<{
 const { getTasks, createTask, updateTask, deleteTask } = useSupabase()
 const { notify } = useNotification()
 const route = useRoute()
+const router = useRouter()
 
 const tasks = ref<Task[]>([])
 const loading = ref(true)
@@ -169,7 +170,7 @@ watch(
 
 watch(viewMode, (mode) => {
   if (route.query.view !== mode) {
-    navigateTo({ query: { ...route.query, view: mode }, replace: true })
+    router.replace({ query: { ...route.query, view: mode } })
   }
 })
 

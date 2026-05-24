@@ -9,9 +9,7 @@
           <template v-if="!editing">
             <div class="flex items-center gap-3">
               <h1 class="text-2xl font-bold text-gray-900 dark:text-white truncate">{{ project.name }}</h1>
-              <span v-if="project.archived" class="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-                Archived
-              </span>
+              <span v-if="project.archived" class="badge-archived">Archived</span>
             </div>
             <p class="mt-1 text-gray-500 dark:text-gray-400">{{ project.description || 'No description' }}</p>
           </template>
@@ -55,7 +53,7 @@
               <p v-if="editError" class="error-text">{{ editError }}</p>
             </div>
           </template>
-          <p class="mt-2 text-xs text-gray-400 dark:text-gray-500">Owner: {{ ownerName }}</p>
+          <p class="mt-2 text-xs text-gray-500 dark:text-gray-500">Owner: {{ ownerName }}</p>
         </div>
 
         <div class="flex flex-col items-end gap-1 shrink-0 ml-4">
@@ -63,21 +61,23 @@
           <template v-if="isOwner && !editing && !confirmDelete">
             <div class="hidden sm:flex flex-wrap gap-2 justify-end">
               <button :disabled="actionInProgress" class="btn btn-secondary btn-sm" @click="startEditing">Edit</button>
-              <button
-                :disabled="actionInProgress"
-                class="btn btn-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed"
-                @click="confirmDelete = true"
-              >
+              <button :disabled="actionInProgress" class="btn btn-sm btn-danger" @click="confirmDelete = true">
                 Delete
               </button>
             </div>
             <div class="flex flex-col sm:hidden flex-wrap gap-2 justify-end">
-              <button :disabled="actionInProgress" class="btn btn-secondary btn-sm px-2 py-2" @click="startEditing">
+              <button
+                :disabled="actionInProgress"
+                class="btn btn-secondary btn-sm px-2 py-2"
+                aria-label="Edit project"
+                @click="startEditing"
+              >
                 <PencilIcon :size="14" aria-hidden="true" />
               </button>
               <button
                 :disabled="actionInProgress"
-                class="btn btn-sm border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-40 disabled:cursor-not-allowed px-2 py-2"
+                class="btn btn-sm btn-danger px-2 py-2"
+                aria-label="Delete project"
                 @click="confirmDelete = true"
               >
                 <Trash2Icon :size="14" aria-hidden="true" />
@@ -93,10 +93,15 @@
               <button class="btn btn-secondary btn-sm" @click="cancelEditing">Cancel</button>
             </div>
             <div class="flex flex-col sm:hidden gap-2">
-              <button :disabled="saving" class="btn btn-primary btn-sm px-2 py-2" @click="handleEditSubmit">
+              <button
+                :disabled="saving"
+                class="btn btn-primary btn-sm px-2 py-2"
+                aria-label="Save project"
+                @click="handleEditSubmit"
+              >
                 <CheckIcon :size="14" aria-hidden="true" />
               </button>
-              <button class="btn btn-secondary btn-sm px-2 py-2" @click="cancelEditing">
+              <button class="btn btn-secondary btn-sm px-2 py-2" aria-label="Cancel editing" @click="cancelEditing">
                 <XIcon :size="14" aria-hidden="true" />
               </button>
             </div>
@@ -108,10 +113,14 @@
               <button class="btn btn-secondary btn-sm" @click="confirmDelete = false">Cancel</button>
             </div>
             <div class="flex sm:hidden flex-col gap-2">
-              <button class="btn btn-danger btn-sm px-2 py-2" @click="handleDelete">
+              <button class="btn btn-danger btn-sm px-2 py-2" aria-label="Delete project" @click="handleDelete">
                 <Trash2Icon :size="14" aria-hidden="true" />
               </button>
-              <button class="btn btn-secondary btn-sm px-2 py-2" @click="confirmDelete = false">
+              <button
+                class="btn btn-secondary btn-sm px-2 py-2"
+                aria-label="Cancel deletion"
+                @click="confirmDelete = false"
+              >
                 <XIcon :size="14" aria-hidden="true" />
               </button>
             </div>
@@ -142,7 +151,7 @@
           <li v-for="m in members" :key="m.id" class="flex items-center justify-between p-3 card">
             <div class="flex items-center gap-2">
               <span class="text-sm text-gray-900 dark:text-white">{{ m.user?.username || m.user?.email }}</span>
-              <span v-if="m.user_id === project.owner_id" class="text-xs text-gray-400">(owner)</span>
+              <span v-if="m.user_id === project.owner_id" class="text-xs text-gray-500">(owner)</span>
               <span v-else-if="m.user_id === user?.id" class="text-xs text-blue-500">(you)</span>
             </div>
             <template v-if="managingMembers && isOwner && m.user_id !== project.owner_id">
@@ -176,7 +185,7 @@
             </template>
           </li>
         </ul>
-        <p v-else class="text-sm text-gray-400 dark:text-gray-500 py-4 text-center">No members yet</p>
+        <p v-else class="text-sm text-gray-500 dark:text-gray-500 py-4 text-center">No members yet</p>
 
         <form
           v-if="managingMembers && isOwner"
@@ -195,7 +204,11 @@
             />
             <p v-if="memberError" class="error-text">{{ memberError }}</p>
           </div>
-          <button type="submit" :disabled="actionInProgress || addLoading" class="btn btn-primary px-3 py-[0.438rem] shrink-0">
+          <button
+            type="submit"
+            :disabled="actionInProgress || addLoading"
+            class="btn btn-primary px-3 py-[0.438rem] shrink-0"
+          >
             <PlusIcon v-if="!addLoading" :size="16" aria-hidden="true" />
             {{ addLoading ? 'Adding...' : 'Add' }}
           </button>

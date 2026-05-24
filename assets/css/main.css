@@ -18,8 +18,14 @@
   .btn-ghost {
     @apply btn text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200;
   }
+  .btn-danger-ghost {
+    @apply btn text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300;
+  }
   .btn-sm {
     @apply px-3 py-1.5;
+  }
+  .btn-xs {
+    @apply px-2 py-0.5 text-xs rounded;
   }
 
   .input {
@@ -35,7 +41,7 @@
     @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1;
   }
   .error-text {
-    @apply mt-1 text-sm text-red-600 dark:text-red-400;
+    @apply mt-1 text-sm text-red-700 dark:text-red-400;
   }
 
   .card {
@@ -44,5 +50,8 @@
 
   .badge {
     @apply inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full truncate;
+  }
+  .badge-archived {
+    @apply badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400;
   }
 }

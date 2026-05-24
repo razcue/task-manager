@@ -1,5 +1,3 @@
-import type { TaskPriority, TaskStatus } from '~/types'
-
 export function useTaskItem() {
   const editing = ref(false)
   const confirmingDelete = ref(false)
